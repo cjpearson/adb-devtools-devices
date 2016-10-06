@@ -12,10 +12,9 @@ function discoverDevices() {
     return adbClient.listDevices()
         .then(function(devices) {
             console.log('devices', devices);
-
             return Promise.reduce(Promise.all(devices.map(findServices)), function(a, b) {
-                a.concat(b);
-            });
+                return a.concat(b);
+            }, []);
         })
         .then(function(services) {  
             console.log('services:', services); 

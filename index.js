@@ -5,7 +5,7 @@ var portfinder = require('portfinder');
 var adb = require('adbkit');
 var adbClient = adb.createClient();
 
-portfinder.basePort = 9222;
+portfinder.basePort = 9322;
 
 function discoverDevices() {
 
@@ -29,27 +29,31 @@ function discoverDevices() {
 
 function findServices(device) {
 
-    return adbClient.shell(device.id, 'cat /proc/net/unix | grep devtools_remote')
-        .then(adb.util.readAll)
-        .then(function(output) {
-            var response = output.toString('utf8');
-            var services = [];
+    return adbClient.getProperties(device.id).then(function(properties){
+        device.properties = properties;
+    }).then(function(){
+        return adbClient.shell(device.id, 'cat /proc/net/unix | grep -a devtools_remote')
+            .then(adb.util.readAll)
+            .then(function(output) {
+                var response = output.toString('utf8');
+                var services = [];
 
-            if(response.length) { 
-                var matches = response.match(/@(.+)/gi);
-                if(matches.length) {
-                    services =  matches;
+                if(response.length) { 
+                    var matches = response.match(/@(.+)/gi);
+                    if(matches && matches.length) {
+                        services = matches;
+                    }
                 }
-            };
 
-            return Promise.map(services, function(service) {
-                return {
-                    device: device,
-                    service: service
-                };
+                return Promise.map(services, function(service) {
+                    return {
+                        device: device,
+                        service: service
+                    };
+                });
+
             });
-
-        });
+    });
 }
 
 function setupForward(info) {
